@@ -1,0 +1,171 @@
+---
+services:
+  # --- MULTIMEDIA ---
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    user: 1000:1000
+    ports:
+      - "8096:8096"
+    volumes:
+      - ${DOCKERDIR}/jellyfin/config:/config
+      - ${DOCKERDIR}/jellyfin/cache:/cache
+      - ${MEDIADIR}:/data # Acceso raíz a media/ y descargas/ para Hardlinks
+      - /dev/shm:/data/transcode
+
+  # --- ARR SUITE (Gestión Automática) ---
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+    volumes:
+      - ${DOCKERDIR}/prowlarr/config:/config
+    ports:
+      - "9696:9696"
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+    volumes:
+      - ${DOCKERDIR}/radarr/config:/config
+      - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
+    ports:
+      - "7878:7878"
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+    volumes:
+      - ${DOCKERDIR}/sonarr/config:/config
+      - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
+    ports:
+      - "8989:8989"
+    restart: unless-stopped
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+    volumes:
+      - ${DOCKERDIR}/bazarr/config:/config
+      - ${MEDIADIR}:/data # Acceso a películas y series
+    ports:
+      - "6767:6767"
+    restart: unless-stopped
+
+  # --- DOWNLOADS ---
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    hostname: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    volumes:
+      - ${DOCKERDIR}/qbittorrent/config:/config
+      - ${MEDIADIR}:/data # Descargas dentro de /data/descargas para Hardlinks
+    restart: unless-stopped
+
+  amule:
+    image: ngosang/amule
+    container_name: amule
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+      - GUI_PWD=$AMULE_GUI_PWD
+      - WEBUI_PWD=$AMULE_WEBUI_PWD
+      - MOD_AUTO_RESTART_ENABLED=true
+      - MOD_AUTO_RESTART_CRON=0 6 * * *
+      - MOD_AUTO_SHARE_ENABLED=false
+      - MOD_AUTO_SHARE_DIRECTORIES=/incoming
+      - MOD_FIX_KAD_GRAPH_ENABLED=true
+      - MOD_FIX_KAD_BOOTSTRAP_ENABLED=true
+    ports:
+      - "4711:4711"
+      - "4712:4712"
+      - "4783:4783"
+      - "4786:4786/udp"
+      - "4789:4789/udp"
+    volumes:
+      - ${DOCKERDIR}/amule/config:/home/amule/.aMule
+      - ${MEDIADIR}/descargas:/home/amule/.aMule/Incoming
+      - ${DOCKERDIR}/amule/incompletas:/home/amule/.aMule/Temp
+    restart: unless-stopped
+
+  # --- NETWORK & PRIVACY ---
+  # pihole:
+  #   container_name: pihole
+  #   image: pihole/pihole:latest
+  #   networks:
+  #     - pihole_wg_network
+  #   ports:
+  #     - "53:53/tcp"
+  #     - "53:53/udp"
+  #     - "67:67/udp"
+  #     - "8091:80/tcp"
+  #   environment:
+  #     TZ: $TZ
+  #     WEBPASSWORD: $PIHOLE_WEBPASSWORD
+  #     FTLCONF_LOCAL_IPV4: $PIHOLE_DIRECCIONIP
+  #   volumes:
+  #     - ${DOCKERDIR}/pihole/etc-pihole:/etc/pihole
+  #     - ${DOCKERDIR}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+  #   cap_add:
+  #     - NET_ADMIN
+  #   restart: unless-stopped
+
+  # wg-easy:
+  #   image: ghcr.io/wg-easy/wg-easy
+  #   container_name: wg-easy
+  #   networks:
+  #     - pihole_wg_network
+  #   environment:
+  #     - LANG=$LANG
+  #     - WG_HOST=$WG_HOST
+  #     - PASSWORD_HASH=$PASSWORD_HASH
+  #     - WG_DEFAULT_DNS=$WG_DEFAULT_DNS
+  #     - WG_PORT=$WG_PORT
+  #     - WG_DEFAULT_ADDRESS=$WG_DEFAULT_ADDRESS
+  #     - WG_MTU=$WG_MTU
+  #     - WG_ALLOWED_IPS=$WG_ALLOWED_IPS
+  #   volumes:
+  #     - ${DOCKERDIR}/wireguard/etc_wireguard:/etc/wireguard
+  #   ports:
+  #     - "51820:51820/udp"
+  #     - "51821:51821/tcp"
+  #   restart: unless-stopped
+  #   cap_add:
+  #     - NET_ADMIN
+  #     - SYS_MODULE
+  #   sysctls:
+  #     - net.ipv4.ip_forward=1
+  #     - net.ipv4.conf.all.src_valid_mark=1
+
+networks:
+  pihole_wg_network:
+    external: true

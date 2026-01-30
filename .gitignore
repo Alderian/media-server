@@ -1,0 +1,41 @@
+# --- SECRETS & ENV ---
+.env
+.env.local
+
+# --- SYSTEM & OS ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- DOCKER DATA & CONFIGS ---
+# Ignoramos todo el contenido de las carpetas de servicios por defecto
+# e incluimos (whitelisteamos) solo los archivos de configuración manuales.
+
+# aMule
+amule/**/*
+!amule/config/amule.conf
+!amule/config/clients.met
+!amule/config/server.met
+
+# Jellyfin
+jellyfin/**/*
+!jellyfin/config/config/
+
+# qBittorrent
+qbittorrent/**/*
+!qbittorrent/config/qBittorrent.conf
+
+# ARR Suite
+prowlarr/**/*
+radarr/**/*
+sonarr/**/*
+bazarr/**/*
+
+# Pi-hole
+pihole/etc-pihole/**/*
+pihole/etc-dnsmasq.d/**/*
+!pihole/etc-pihole/*.conf
+
+# Wireguard (wg-easy)
+wireguard/etc_wireguard/**/*
+!wireguard/etc_wireguard/config.json
