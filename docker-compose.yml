@@ -1,102 +1,200 @@
----
+###############################################
+# Common Keys for all apps
+###############################################
+
+x-common-keys: &common-keys
+  restart: unless-stopped
+  logging:
+    driver: json-file
+  environment:
+    PUID: $PUID
+    PGID: $PGID
+    TZ: $TZ
+  volumes:
+    - /etc/localtime:/etc/localtime:ro
+  dns:
+    - 1.1.1.1
+    - 1.0.0.1
+
 services:
-  # --- MULTIMEDIA ---
+  ###############################################
+  # JEFFYFIN - Media Server
+  ###############################################
   jellyfin:
-    image: jellyfin/jellyfin:latest
+    image: jellyfin/jellyfin
     container_name: jellyfin
-    restart: unless-stopped
-    user: 1000:1000
-    ports:
-      - "8096:8096"
+    <<: *common-keys
     volumes:
       - ${DOCKERDIR}/jellyfin/config:/config
       - ${DOCKERDIR}/jellyfin/cache:/cache
       - ${MEDIADIR}:/data # Acceso raíz a media/ y descargas/ para Hardlinks
-      - /dev/shm:/data/transcode
+      # - /dev/shm:/data/transcode
+    devices:
+      # Required for V4L2 hardware acceleration on Raspberry Pi
+      - /dev/video10:/dev/video10
+      - /dev/video11:/dev/video11
+      - /dev/video12:/dev/video12
+    ports:
+      - "8096:8096"
 
-  # --- ARR SUITE (Gestión Automática) ---
+  ###############################################
+  # PROWLARR - Indexer Manager
+  ###############################################
   prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
+    image: lscr.io/linuxserver/prowlarr
     container_name: prowlarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
+    <<: *common-keys
     volumes:
       - ${DOCKERDIR}/prowlarr/config:/config
     ports:
       - "9696:9696"
-    restart: unless-stopped
 
+  ###############################################
+  # RADARR - Movies
+  ###############################################
   radarr:
-    image: lscr.io/linuxserver/radarr:latest
+    image: lscr.io/linuxserver/radarr
     container_name: radarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
+    <<: *common-keys
     volumes:
       - ${DOCKERDIR}/radarr/config:/config
       - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
     ports:
       - "7878:7878"
-    restart: unless-stopped
 
+  ###############################################
+  # SONARR - Series
+  ###############################################
   sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
+    image: lscr.io/linuxserver/sonarr
     container_name: sonarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
+    <<: *common-keys
     volumes:
       - ${DOCKERDIR}/sonarr/config:/config
       - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
     ports:
       - "8989:8989"
-    restart: unless-stopped
 
+  ###############################################
+  # BAZARR - Movies
+  ###############################################
   bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
+    image: lscr.io/linuxserver/bazarr
     container_name: bazarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
+    <<: *common-keys
     volumes:
       - ${DOCKERDIR}/bazarr/config:/config
-      - ${MEDIADIR}:/data # Acceso a películas y series
+      - ${MEDIADIR}/media:/data/media
     ports:
       - "6767:6767"
-    restart: unless-stopped
 
-  # --- DOWNLOADS ---
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
-    hostname: qbittorrent
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-      - WEBUI_PORT=8080
-      - TORRENTING_PORT=6881
+  ###############################################
+  # LIDARR - Music
+  ###############################################
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    <<: *common-keys
+    volumes:
+      - ${DOCKERDIR}/lidarr/config:/config
+      - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
     ports:
-      - "8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
+      - 8686:8686
+
+  ###############################################
+  # READARR - Books
+  ###############################################
+  # readarr:
+  #   container_name: readarr
+  #   image: lscr.io/linuxserver/readarr:arm64v8-develop
+  #   volumes:
+  #     - ${DOCKERDIR}/readarr/config:/config
+  #     - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
+  #   ports:
+  #     - 8787:8787
+
+  ###############################################
+  # OVERSEER - Media request
+  ###############################################
+  # overseerr:
+  #   image: sctx/overseerr:latest
+  #   container_name: overseerr
+  #   environment:
+  #     - LOG_LEVEL=debug
+  #   ports:
+  #     - 5055:5055
+  #   volumes:
+  #     - ${DOCKERDIR}/overseerr/config:/app/config
+  #   #     - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
+
+  jellyseerr:
+    container_name: jellyseerr
+    image: fallenbagel/jellyseerr:latest
+    volumes:
+      - ${DOCKERDIR}/jellyseerr/config:/app/config
+    ports:
+      - 5055:5055
+
+  ###############################################
+  # HOMARR - Dashboard
+  ###############################################
+  homarr:
+    container_name: homarr
+    image: ghcr.io/homarr-labs/homarr:latest
+    <<: *common-keys
+    environment:
+      - SECRET_ENCRYPTION_KEY=$SECRET_ENCRYPTION_KEY
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+      - ${DOCKERDIR}/homarr/config:/config
+      - ${MEDIADIR}:/data # Raíz compartida para Hardlinks
+    ports:
+      - '7575:7575'
+
+  ###############################################
+  # QBITTORRENT - Downloads
+  ###############################################
+  qbittorrent:
+    image: ghcr.io/qbittorrent/docker-qbittorrent-nox:latest
+    container_name: qbittorrent
+    <<: *common-keys
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+    environment:
+      - QBT_LEGAL_NOTICE=confirm
+      - WEBUI_PORT=$QBIT_WEBUI_PORT
+      - TORRENTING_PORT=$QBIT_TORRENTING_PORT
     volumes:
       - ${DOCKERDIR}/qbittorrent/config:/config
-      - ${MEDIADIR}:/data # Descargas dentro de /data/descargas para Hardlinks
-    restart: unless-stopped
+      - ${MEDIADIR}:/data
+    ports:
+      - "$QBIT_WEBUI_PORT:$QBIT_WEBUI_PORT"
+      - "$QBIT_TORRENTING_PORT:$QBIT_TORRENTING_PORT"
+      - "$QBIT_TORRENTING_PORT:$QBIT_TORRENTING_PORT/udp"
+    healthcheck:
+      test: ping -c 1 www.google.com || exit 1
+      interval: 60s
+      retries: 3
+      start_period: 20s
+      timeout: 10s
 
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:latest
+    container_name: nzbget
+    volumes:
+      - ${DOCKERDIR}/nzbget/config:/config
+      - ${MEDIADIR}:/data
+    ports:
+      - 6789:6789
+
+  ###############################################
+  # AMULE - Downloads
+  ###############################################
   amule:
     image: ngosang/amule
     container_name: amule
+    <<: *common-keys
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
       - GUI_PWD=$AMULE_GUI_PWD
       - WEBUI_PWD=$AMULE_WEBUI_PWD
       - MOD_AUTO_RESTART_ENABLED=true
@@ -105,29 +203,73 @@ services:
       - MOD_AUTO_SHARE_DIRECTORIES=/incoming
       - MOD_FIX_KAD_GRAPH_ENABLED=true
       - MOD_FIX_KAD_BOOTSTRAP_ENABLED=true
+    volumes:
+      - ${DOCKERDIR}/amule/config:/home/amule/.aMule
+      - ${MEDIADIR}/amule/complete:/home/amule/.aMule/Incoming
+      - ${MEDIADIR}/amule/incomplete:/home/amule/.aMule/Temp
     ports:
       - "4711:4711"
       - "4712:4712"
       - "4783:4783"
       - "4786:4786/udp"
       - "4789:4789/udp"
-    volumes:
-      - ${DOCKERDIR}/amule/config:/home/amule/.aMule
-      - ${MEDIADIR}/descargas:/home/amule/.aMule/Incoming
-      - ${DOCKERDIR}/amule/incompletas:/home/amule/.aMule/Temp
-    restart: unless-stopped
 
-  # --- NETWORK & PRIVACY ---
+  ###################################
+  # FLARESOLVERR - Cloudflare Bypass
+  ###################################
+  flaresolverr:
+    <<: *common-keys
+    container_name: flaresolverr
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    ports:
+      - 8191:8191
+    environment:
+      - LOG_LEVEL=info
+
+
+  ###############################################
+  # GLUETUN - VPN
+  ###############################################
+  # gluetun:
+  #   image: qmcgaw/gluetun
+  #   container_name: gluetun
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun:/dev/net/tun
+  #   ports:
+  #   - 8080:8080 # qbittorrent web interface
+  #   - 6881:6881 # qbittorrent torrent port
+  #   - 6789:6789 # nzbget
+  #   - 9696:9696 # prowlarr
+  #   volumes:
+  #     - ${DOCKERDIR}/gluetun:/gluetun
+  #   environment:
+  #     # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+  #     - VPN_SERVICE_PROVIDER=ivpn
+  #     - VPN_TYPE=openvpn
+  #     # OpenVPN:
+  #     - OPENVPN_USER=
+  #     - OPENVPN_PASSWORD=
+  #     # Wireguard:
+  #     # - WIREGUARD_PRIVATE_KEY=wOEI9rqqbDwnN8/Bpp22sVz48T71vJ4fYmFWujulwUU=
+  #     # - WIREGUARD_ADDRESSES=10.64.222.21/32
+  #     # Timezone for accurate log times
+  #     - TZ=
+  #     # Server list updater
+  #     # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+  #     - UPDATER_PERIOD=
+  #   healthcheck:
+  #     test: ping -c 1 www.google.com || exit 1
+  #     interval: 20s
+  #     timeout: 10s
+  #     retries: 5
+
   # pihole:
+  #   image: pihole/pihole
   #   container_name: pihole
-  #   image: pihole/pihole:latest
   #   networks:
   #     - pihole_wg_network
-  #   ports:
-  #     - "53:53/tcp"
-  #     - "53:53/udp"
-  #     - "67:67/udp"
-  #     - "8091:80/tcp"
   #   environment:
   #     TZ: $TZ
   #     WEBPASSWORD: $PIHOLE_WEBPASSWORD
@@ -135,9 +277,13 @@ services:
   #   volumes:
   #     - ${DOCKERDIR}/pihole/etc-pihole:/etc/pihole
   #     - ${DOCKERDIR}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+  #   ports:
+  #     - "53:53/tcp"
+  #     - "53:53/udp"
+  #     - "67:67/udp"
+  #     - "8091:80/tcp"
   #   cap_add:
   #     - NET_ADMIN
-  #   restart: unless-stopped
 
   # wg-easy:
   #   image: ghcr.io/wg-easy/wg-easy
@@ -158,7 +304,6 @@ services:
   #   ports:
   #     - "51820:51820/udp"
   #     - "51821:51821/tcp"
-  #   restart: unless-stopped
   #   cap_add:
   #     - NET_ADMIN
   #     - SYS_MODULE
@@ -166,6 +311,6 @@ services:
   #     - net.ipv4.ip_forward=1
   #     - net.ipv4.conf.all.src_valid_mark=1
 
-networks:
-  pihole_wg_network:
-    external: true
+  # networks:
+  #   arr_network:
+  #     external: true
