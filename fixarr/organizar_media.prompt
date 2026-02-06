@@ -1,0 +1,73 @@
+Generá una **aplicación Python completa** en formato de proyecto que organice una **biblioteca de medios (películas, series y música)** a partir de una carpeta raíz existente (`SRC_PATH`) y la ordene en una carpeta destino (`DST_PATH`).  
+La aplicación debe:
+
+1) **Instalar dependencias** necesarias para correr sin interacción, incluyendo CLI tools:
+    - Python 3.10+
+    - `beets` para música (organizar librería de audio) con MusicBrainz.
+    - `exiftool` para leer/escribir metadatos multimedia.
+    - Python libs: `tmdbsimple`, `IMDbPY`, `pytoml` o similares para APIs de video.
+    - Incluir un `requirements.txt` y un script de instalación (`install.sh`) que instale todo localmente (Linux/Debian/Raspberry Pi).
+
+2) **Estructura de carpetas y lógica de escaneo**:
+    - Recorrer `SRC_PATH` recursivamente.
+    - Detectar grupos de archivos por carpeta (ej. show con múltiples episodios, álbum con múltiples tracks).
+    - Detectar tipo de contenido por extensión y heurísticas de nombre:
+        * Video: `.mkv .mp4 .avi`  
+        * Audio: `.mp3 .flac .wav`  
+        * Subtítulos asociados: `.srt .vtt`
+    - Si una carpeta contiene **múltiples archivos del mismo tipo relacionados** tratarlos como **un solo objeto** (show o álbum) antes de pedir metadata remota.
+
+3) **Clasificación y metadata remota**:
+    - Integrar lógica para consultar **TMDb/IMDb** para películas/series y **MusicBrainz** para música.
+    - Generar un **cache local** para metadata descargada, evitar consultas repetidas y acelerar ejecuciones posteriores.
+    - Para cada objeto clasificado, generar arte (portadas) y archivos `.nfo` compatibles con **Jellyfin**.
+    - Manejar ambigüedades automáticamente con reglas o fallbacks:
+        * Si hay **multiples coincidencias similares** → elegir la mejor por heurística.
+        * Si no hay coincidencias claras → aplicar reglas automáticas por defecto o usar nombre de archivo limpio.
+        * **No debe pedir confirmación al usuario**; generar logs detallados.
+
+4) **Proceso de organización**:
+    - Para música: usar `beets import` con configuración no interactiva.
+    - Para video:
+        - Si es show: organizar como `Series/Nombre/Season XX/Episodio`.
+        - Si es película: organizar como `Peliculas/Nombre (Año)`.
+    - Detectar y mover subtítulos al mismo directorio destino con el video correspondiente.
+    - Mover los archivos/carpeta procesados a `DST_PATH` con la estructura mencionada.
+    - Generar un registro (log) de cada operación y un reporte final `report.json` con detalles de cada item.
+
+5) **Diagrama de flujo y documentación interna**:
+    - Incluir un archivo `FLOWCHART.mmd` en formato **Mermaid** con el flujo completo de decisión (clasificación, metadata, mover).
+    - Incluir un `AGENTS.md` explicando:
+        * Cómo funciona la aplicación.
+        * Reglas de clasificación automática.
+        * Cómo está configurada la cache.
+        * Dependencias cli y su uso.
+        * Cómo correr `organizer.py --src SRC_PATH --dst DST_PATH`.
+
+6) **Código Python estructurado**:
+    - Módulos organizados:
+        * `scanner.py`: Escaneo y clasificación básica.
+        * `metadata.py`: Consulta APIs (TMDb, IMDb, MusicBrainz).
+        * `organizer.py`: Mover y escribir `.nfo`/arte.
+        * `utils.py`: Helpers para nombres/heurísticas.
+        * `main.py`: Entrypoint con opciones de línea de comandos (`argparse`).
+    - El código no debe generar prompts interactivos; debe resolver todo por heurística, reglas definidas y caching.
+
+7) **Scripts auxiliares**:
+    - `install.sh`: Instalar todo lo necesario en Debian/Raspberry Pi.
+    - `run_tests.sh`: Script básico de tests unitarios.
+    - `update_metadata_cache.sh`: Script que refresca la cache de metadata remota si es requerido.
+
+8) **Tests y validación automática**:
+    - Incluir tests en `tests/` que verifiquen:
+        * Detección de tipo de archivo.
+        * Clasificación de carpeta show/album.
+        * Consultas mock de TMDb/MusicBrainz.
+        * Generación correcta de estructura destino.
+
+**Requerimiento de salida**:
+- El proyecto completo listo para usarse con **solo ejecutar install.sh y luego `python3 main.py --src /ruta/mis_medios --dst /ruta/organizados`** sin necesidad de interacción humana.
+- El código debe estar bien documentado, con docstrings y comentarios.
+- Incluir diagramas Mermaid dentro de la carpeta de proyecto listos para renderizar.
+
+Entregar **TODO el código**, **todos los scripts**, **documentación (README.md, AGENTS.md)** y **el diagrama de flujo Mermaid** listo para copiar/pegar.

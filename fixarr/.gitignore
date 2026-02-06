@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+
+# Fixarr specific
+metadata_cache.json
+report.json
+.env
+
+# OS files
+.DS_Store
+Thumbs.db

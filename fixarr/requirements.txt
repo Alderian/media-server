@@ -1,0 +1,6 @@
+tmdbsimple
+cinemagoer
+pyyaml
+requests
+pytest
+python-dotenv

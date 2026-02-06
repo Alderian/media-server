@@ -1,0 +1,25 @@
+graph TD
+    A[Start] --> B[Scan SRC_PATH]
+    B --> C{Files Found?}
+    C -- No --> Z[End]
+    C -- Yes --> D[Group Files by Folder]
+    
+    D --> E{Media Type?}
+    
+    E -- Music --> F[Run Beets Import]
+    F --> L[Update Report]
+    
+    E -- TV Show --> G[Fetch TMDB/IMDb Metadata]
+    G --> H[Create Show/Season Folders]
+    H --> I[Move Files & Create .nfo]
+    I --> L
+    
+    E -- Movie --> J[Fetch TMDB Metadata]
+    J --> K[Create Movie Folder]
+    K --> M[Move File & Create .nfo]
+    M --> L
+    
+    L --> N{More Items?}
+    N -- Yes --> E
+    N -- No --> O[Save report.json]
+    O --> Z
