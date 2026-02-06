@@ -10,103 +10,29 @@ Thumbs.db
 # --- DOCKER DATA & CONFIGS ---
 # Ignoramos todo el contenido de las carpetas de servicios por defecto
 # e incluimos (whitelisteamos) solo los archivos de configuración manuales.
-# 
-# IMPORTANTE: Para que el whitelist funcione en Git:
-# - No usar 'carpeta/**/*' porque bloquea los directorios padres
-# - Usar '*' en cada nivel y negar específicamente los archivos que queremos versionar
 
 # aMule
 amule/*
-!amule/config/
-amule/config/*
-!amule/config/amule.conf
-!amule/config/clients.met
-!amule/config/server.met
 
 # Jellyfin
 jellyfin/*
-!jellyfin/config/
-jellyfin/config/*
-!jellyfin/config/config/
-jellyfin/config/config/*
-!jellyfin/config/config/*.xml
 
-# qBittorrent  
+# qBittorrent
 qbittorrent/*
-!qbittorrent/config/
-qbittorrent/config/*
-!qbittorrent/config/qBittorrent/
-qbittorrent/config/qBittorrent/*
-!qbittorrent/config/qBittorrent/config/
-qbittorrent/config/qBittorrent/config/*
-!qbittorrent/config/qBittorrent/config/qBittorrent.conf
 
-# ARR Suite - Prowlarr
+# ARR Suite
 prowlarr/*
-!prowlarr/config/
-prowlarr/config/*
-!prowlarr/config/config.xml
-
-# ARR Suite - Radarr
 radarr/*
-!radarr/config/
-radarr/config/*
-!radarr/config/config.xml
-
-# ARR Suite - Sonarr
 sonarr/*
-!sonarr/config/
-sonarr/config/*
-!sonarr/config/config.xml
-
-# ARR Suite - Bazarr
 bazarr/*
-!bazarr/config/
-bazarr/config/*
-!bazarr/config/config/
-bazarr/config/config/*
-!bazarr/config/config/config.yaml
-
-# ARR Suite - Lidarr
-lidarr/*
-!lidarr/config/
-lidarr/config/*
-!lidarr/config/config.xml
-
-# Media Requests - Overseerr
-overseerr/*
-!overseerr/config/
-overseerr/config/*
-!overseerr/config/settings.json
-
-# Media Requests - Jellyseerr
-jellyseerr/*
-!jellyseerr/config/
-jellyseerr/config/*
-!jellyseerr/config/settings.json
-
-# Download Client - NZBGet
-nzbget/*
-!nzbget/config/
-nzbget/config/*
-!nzbget/config/nzbget.conf
-
-# Dashboard - Homarr
-# (Sin archivos de configuración aún - se agregará cuando se configure)
 homarr/*
+jellyseerr/*
+nzbget/*
+overseerr/*
+lidarr/*
 
 # Pi-hole
 pihole/*
-!pihole/etc-pihole/
-pihole/etc-pihole/*
-!pihole/etc-pihole/dnsmasq.conf
-!pihole/etc-pihole/setupVars.conf
-!pihole/etc-dnsmasq.d/
-pihole/etc-dnsmasq.d/*
-!pihole/etc-dnsmasq.d/*.conf
 
 # Wireguard (wg-easy)
 wireguard/*
-!wireguard/etc_wireguard/
-wireguard/etc_wireguard/*
-!wireguard/etc_wireguard/config.json
