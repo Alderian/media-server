@@ -1,73 +1,165 @@
-Generá una **aplicación Python completa** en formato de proyecto que organice una **biblioteca de medios (películas, series y música)** a partir de una carpeta raíz existente (`SRC_PATH`) y la ordene en una carpeta destino (`DST_PATH`).  
-La aplicación debe:
+Actuá como un **experto desarrollador Python y experto en organización de bibliotecas multimedia**. Tenés acceso al código completo en el directorio local del proyecto `fixarr` de este repo: https://github.com/Alderian/media-server dentro de la carpeta `fixarr`. El objetivo es **mejorar, refactorizar, configurar y hacer muy fácil de usar** la herramienta que ordena archivos de películas, series y música desde consola (por ejemplo en una Raspberry Pi). Debés analizar el código actual y hacer todos los cambios necesarios según la siguiente lista de mejoras y reglas de negocio.
 
-1) **Instalar dependencias** necesarias para correr sin interacción, incluyendo CLI tools:
-    - Python 3.10+
-    - `beets` para música (organizar librería de audio) con MusicBrainz.
-    - `exiftool` para leer/escribir metadatos multimedia.
-    - Python libs: `tmdbsimple`, `IMDbPY`, `pytoml` o similares para APIs de video.
-    - Incluir un `requirements.txt` y un script de instalación (`install.sh`) que instale todo localmente (Linux/Debian/Raspberry Pi).
+### CONTEXTO DE USO
+La herramienta actual intenta:
+- escanear un directorio
+- identificar tipo de medios (películas, series, música)
+- mover los archivos a carpetas destino
+- renombrarlos según metadata remota
+Pero el resultado tiene:
+- falsos positivos (por ejemplo `Klaus` fue mal identificado),
+- archivos sin metadata usados de todas formas,
+- patrones de nombre no configurables,
+- falta de tratamiento de archivos no reconocidos,
+- falta de mecanismos de *confidence scoring* y *fallback*,
+- configuración de formatos de nombre no editable,
+- falta de separación clara de lógica de negocio.
 
-2) **Estructura de carpetas y lógica de escaneo**:
-    - Recorrer `SRC_PATH` recursivamente.
-    - Detectar grupos de archivos por carpeta (ej. show con múltiples episodios, álbum con múltiples tracks).
-    - Detectar tipo de contenido por extensión y heurísticas de nombre:
-        * Video: `.mkv .mp4 .avi`  
-        * Audio: `.mp3 .flac .wav`  
-        * Subtítulos asociados: `.srt .vtt`
-    - Si una carpeta contiene **múltiples archivos del mismo tipo relacionados** tratarlos como **un solo objeto** (show o álbum) antes de pedir metadata remota.
+Vos tenés que **generar TODO lo necesario** para mejorar y complementar el proyecto.
 
-3) **Clasificación y metadata remota**:
-    - Integrar lógica para consultar **TMDb/IMDb** para películas/series y **MusicBrainz** para música.
-    - Generar un **cache local** para metadata descargada, evitar consultas repetidas y acelerar ejecuciones posteriores.
-    - Para cada objeto clasificado, generar arte (portadas) y archivos `.nfo` compatibles con **Jellyfin**.
-    - Manejar ambigüedades automáticamente con reglas o fallbacks:
-        * Si hay **multiples coincidencias similares** → elegir la mejor por heurística.
-        * Si no hay coincidencias claras → aplicar reglas automáticas por defecto o usar nombre de archivo limpio.
-        * **No debe pedir confirmación al usuario**; generar logs detallados.
+---
 
-4) **Proceso de organización**:
-    - Para música: usar `beets import` con configuración no interactiva.
-    - Para video:
-        - Si es show: organizar como `Series/Nombre/Season XX/Episodio`.
-        - Si es película: organizar como `Peliculas/Nombre (Año)`.
-    - Detectar y mover subtítulos al mismo directorio destino con el video correspondiente.
-    - Mover los archivos/carpeta procesados a `DST_PATH` con la estructura mencionada.
-    - Generar un registro (log) de cada operación y un reporte final `report.json` con detalles de cada item.
+## 🧩 OBJETIVOS PRINCIPALES
 
-5) **Diagrama de flujo y documentación interna**:
-    - Incluir un archivo `FLOWCHART.mmd` en formato **Mermaid** con el flujo completo de decisión (clasificación, metadata, mover).
-    - Incluir un `AGENTS.md` explicando:
-        * Cómo funciona la aplicación.
-        * Reglas de clasificación automática.
-        * Cómo está configurada la cache.
-        * Dependencias cli y su uso.
-        * Cómo correr `organizer.py --src SRC_PATH --dst DST_PATH`.
+### 1) Normalización y extracción de títulos
+- Creá o mejorá funciones que limpien nombres de archivo antes de buscar metadata (sacar resoluciones, codecs, tags de idioma, texto extra).
+- Implementá una función `clean_media_filename(raw)` que devuelva un título base y año (**sin interactuar con el usuario**) para usar en las consultas a APIs como TMDb/IMDb/TVmaze.
+- Usá regex y heurísticas claras.
 
-6) **Código Python estructurado**:
-    - Módulos organizados:
-        * `scanner.py`: Escaneo y clasificación básica.
-        * `metadata.py`: Consulta APIs (TMDb, IMDb, MusicBrainz).
-        * `organizer.py`: Mover y escribir `.nfo`/arte.
-        * `utils.py`: Helpers para nombres/heurísticas.
-        * `main.py`: Entrypoint con opciones de línea de comandos (`argparse`).
-    - El código no debe generar prompts interactivos; debe resolver todo por heurística, reglas definidas y caching.
+### 2) Metadata remota con scoring y reglas de confianza
+- Reemplazá la lógica actual de tomar *primer resultado* con un *scoring* que evalúe:
+  - similitud de título (fuzzy matching),
+  - coincidencia de año,
+  - coincidencias de palabras claves,
+  - longitud de título.
+- Si el *score* es insuficiente (< configurable threshold), **no mover el archivo a su destino final**.
+- En esos casos mové el archivo a una carpeta especial de **revisión pendiente** dentro de `dst/review_needed/`.
 
-7) **Scripts auxiliares**:
-    - `install.sh`: Instalar todo lo necesario en Debian/Raspberry Pi.
-    - `run_tests.sh`: Script básico de tests unitarios.
-    - `update_metadata_cache.sh`: Script que refresca la cache de metadata remota si es requerido.
+### 3) Configurabilidad de formatos de nombre
+- Implementá un sistema de configuración (archivo JSON o YAML) con un esquema como:
 
-8) **Tests y validación automática**:
-    - Incluir tests en `tests/` que verifiquen:
-        * Detección de tipo de archivo.
-        * Clasificación de carpeta show/album.
-        * Consultas mock de TMDb/MusicBrainz.
-        * Generación correcta de estructura destino.
+```yaml
+naming:
+  # Movies: {title}, {year}, {imdb_id}, {tmdb_id}
+  movie_folder: "{title} ({year}) [imdbid-{imdb_id}]"
+  movie_file: "{title} {(year)} [imdbid-{imdb_id}] - {{Edition Tags}} {[MediaInfo 3D]}{[Custom Formats]}{[Quality Full]}{Mediainfo AudioCodec}-{Mediainfo AudioChannels}{[MediaInfo VideoDynamicRangeType]}{[MediaInfo VideoCodec]}{-Release Group}"
 
-**Requerimiento de salida**:
-- El proyecto completo listo para usarse con **solo ejecutar install.sh y luego `python3 main.py --src /ruta/mis_medios --dst /ruta/organizados`** sin necesidad de interacción humana.
-- El código debe estar bien documentado, con docstrings y comentarios.
-- Incluir diagramas Mermaid dentro de la carpeta de proyecto listos para renderizar.
+  # TV Shows: {title}, {year}, {imdb_id}, {tmdb_id}, {season}, {episode}, {episode_title}
+  tv_show_folder: "{title} ({year}) - [imdb-{imdb_id}]"
+  tv_season_folder: "Season {season:02d}"
+  tv_file: "{title} ({year}) - S{season:00}E{episode:00} - {episode_title} - {MediaInfo AudioLanguagesAll} subs {MediaInfo SubtitleLanguages} {Edition Tags} {[Custom Formats]}{[Quality Full]}{-Release Group}"
 
-Entregar **TODO el código**, **todos los scripts**, **documentación (README.md, AGENTS.md)** y **el diagrama de flujo Mermaid** listo para copiar/pegar.
+  # Music: {artist}, {album}, {year}, {track_number}, {track_title}
+  music_artist_folder: "{artist}"
+  music_album_folder: "{album} ({year})"
+  music_track_file: "{track_number} - {track_title}"
+````
+
+* El código debe leer esa configuración y usarla para construir la ruta de destino y nombre de archivo.
+* Permití que el usuario edite este archivo para personalizar nombres.
+
+### 4) Manejo de archivos no reconocidos
+
+* Si un archivo no se puede clasificar (sin metadata decente y sin nombre claro):
+
+  * No se debe mover a la estructura final.
+  * Debe moverse a `dst/review_needed/`.
+  * Debe quedar anotado en el reporte con sugerencias de nombres candidatos y los *scores* que se calcularon.
+
+### 5) Reporte detallado
+
+* Generá un `report.json` con:
+
+  * lista de archivos procesados,
+  * metadata encontrada,
+  * decisión tomada,
+  * score y por qué se rechazó (si fue rechazado),
+  * ruta final o ruta de revisión pendiente.
+
+### 6) Extra features sugeridas con alternativas CLI open source
+
+Adoptá o inspirate en alguna de estas herramientas (como CLI integrables) para usos de renombrado o metadata:
+
+* **MediaMovarr**: organiza media según estándares Plex/Kodi/Jellyfin con TMDb opcional. ([PyPI][1])
+* **Shownamer**: renombra archivos de TV/Movies con OMDb/TVmaze y soporta templates de formato. ([PyPI][2])
+* **mnamer**: altamente configurable, con plantillas poderosas y soporte TMDb/OmDb. ([PyPI][3])
+* **imdb-rename**: renombra basado en nombres indexados de IMDb (disponibles en CLI). ([GitHub][4])
+* **tvmv**: CLI para renombrar episodios con TMDb. ([GitHub][5])
+
+Podés:
+
+* incorporar funciones de esas librerías (por ejemplo integrar mnamer internamente),
+* o generar wrappers CLI que usen esas herramientas internamente para tareas de renombrado o scoring.
+
+### 7) Música y subtítulos
+
+* Para música, integrá *beets* o similar pero no dependa de interacción.
+* Para subtítulos, vinculá automáticamente archivos `.srt/.vtt/.ass` con el archivo de vídeo correspondiente según el idioma y renombrado.
+
+### 8) Modularización y pruebas
+
+* Reestructurá el proyecto por módulos:
+
+  * `scanner.py`
+  * `name_cleaner.py`
+  * `metadata.py` (con scoring)
+  * `organizer.py`
+  * `config.py`
+  * `report.py`
+  * `main.py` (CLI con argparse)
+* Agregá tests unitarios en `tests/` para cada módulo.
+* Incluí documentación y ejemplos de configuración.
+
+### 9) UX de CLI
+
+* CLI debe tener:
+
+  * flags: `--src`, `--dst`, `--config PATH`, `--dry-run`, `--report PATH`, `--verbose`.
+  * Dry-run modo que simula y muestra cambios sin mover nada.
+  * Verbose detallado con score y heurísticas.
+  * Valores configurables por .env o archivo de configuración para las api keys y para los directorios origen y destino por defecto.
+
+---
+
+## 🏁 SALIDA ESPERADA
+
+La IA debe modificar el repositorio directamente y dejarlo listo para:
+
+* instalar dependencias (`requirements.txt`),
+* correr en Raspberry Pi,
+* soportar configuración de nombres,
+* procesar sin interacción,
+* mover automáticamente archivos con baja tasa de falsos positivos,
+* generar reportes claros y reutilizables.
+
+El código debe ser limpio, bien documentado (docstrings), y acompañado de tests. También debe tener `README.md` actualizado con instrucciones de uso. Todos los comentarios deben estar en ingles, todos los docstrings deben estar en inglestodos los README, AGENTS.md, etc en ingles.
+
+---
+
+## 📌 RESTRICCIONES
+
+* El proceso **no debe solicitar entrada del usuario** durante el ordenamiento final (todo debe ser heurístico + configurable). Y si el proceso no tiene certeza de algo, debe dejar los archivos separados y un log de lo que no pudo hacer.
+* La IA puede **buscar alternativas open source**, usar funciones de esos proyectos (referenciarlos en el código) o generarlas desde cero.
+* La IA debe operar bajo el supuesto de que puede *leer y escribir archivos en el proyecto local*.
+
+---
+
+## 🛠️ Opciones de API y bases de datos
+
+Debés usar:
+
+* TMDb para películas/series con tu propia API key,
+* TVmaze o TVDb para episodios (el que tenga mejor cobertura),
+* IMDb como fallback o con herramientas como imdb-rename.
+
+---
+
+## 📝 Finalizá diciendo “**changes complete**” cuando hayas terminado.
+
+---
+
+[1]: https://pypi.org/project/mediamovarr/?utm_source=chatgpt.com "mediamovarr · PyPI"
+[2]: https://pypi.org/project/shownamer/?utm_source=chatgpt.com "shownamer · PyPI"
+[3]: https://pypi.org/project/mnamer/?utm_source=chatgpt.com "mnamer · PyPI"
+[4]: https://github.com/BurntSushi/imdb-rename?utm_source=chatgpt.com "GitHub - BurntSushi/imdb-rename: A command line tool to rename media files based on titles from IMDb."
+[5]: https://github.com/keithfancher/tvmv?utm_source=chatgpt.com "GitHub - keithfancher/tvmv: Bulk-rename TV episode files with minimal fuss"

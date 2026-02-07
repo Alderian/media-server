@@ -5,10 +5,12 @@ __pycache__/
 .pytest_cache/
 venv/
 .venv/
+organizer_env/
 
 # Fixarr specific
 metadata_cache.json
 report.json
+config.yaml
 .env
 
 # OS files

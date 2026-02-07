@@ -1,0 +1,104 @@
+# Fixarr Configuration Example
+# Copy this file to config.yaml and customize as needed
+# cp config.yaml.example config.yaml
+
+# =============================================================================
+# NAMING TEMPLATES
+# =============================================================================
+# Customize how files and folders are named in your library.
+# Use placeholders wrapped in {curly_braces} for dynamic values.
+# Use [brackets] for optional sections - removed if placeholder is missing.
+#
+# Format specifiers:
+#   {season:02d}  - Zero-padded to 2 digits (01, 02, etc.)
+#   {episode:03d} - Zero-padded to 3 digits (001, 002, etc.)
+#
+naming:
+  # ----- MOVIES -----
+  # Available: {title}, {year}, {imdb_id}, {tmdb_id}
+  #            {codec}, {audio_langs}, {sub_langs}, {resolution}
+  movie_folder: "{title} ({year})"
+  movie_file: "{title} ({year})"
+  
+  # Example with optional IMDB ID (bracket section removed if no imdb_id):
+  # movie_folder: "{title} ({year}) [imdbid-{imdb_id}]"
+  
+  # Example with technical tags:
+  # movie_file: "{title} ({year}) [imdbid-{imdb_id}] - [{codec}][{resolution}][{audio_langs}][{sub_langs}]"
+  
+  # ----- TV SHOWS -----
+  # Available: {title}, {year}, {imdb_id}, {tmdb_id}, {season}, {episode}, {episode_title}
+  #            {codec}, {audio_langs}, {sub_langs}, {resolution}
+  tv_show_folder: "{title}"
+  tv_season_folder: "Season {season:02d}"
+  tv_file: "{title} - S{season:02d}E{episode:02d}"
+  
+  # Example with episode title and optional year:
+  # tv_show_folder: "{title} ({year}) [imdbid-{imdb_id}]"
+  # tv_file: "{title} ({year}) - S{season:02d}E{episode:02d} {episode_title} - [{codec}][{resolution}][{audio_langs}][{sub_langs}]"
+  
+  # ----- MUSIC -----
+  # Available: {artist}, {album}, {year}, {track_number}, {track_title}
+  music_artist_folder: "{artist}"
+  music_album_folder: "{album} ({year})"
+  music_track_file: "{track_number:02d} - {track_title}"
+
+# =============================================================================
+# CONFIDENCE THRESHOLDS
+# =============================================================================
+# Control how strict the matching algorithm is.
+#
+thresholds:
+  # Minimum overall score (0.0 - 1.0) to accept a match
+  # Lower = more matches, higher = stricter matching
+  min_confidence: 0.8
+  
+  # Minimum fuzzy match ratio for title comparison
+  fuzzy_match_threshold: 0.8
+  
+  # Year tolerance when matching (e.g., 1 allows 2019 to match 2020)
+  year_tolerance: 1
+
+# =============================================================================
+# DIRECTORY PATHS
+# =============================================================================
+# Configure folder names and default directories.
+#
+paths:
+  # Subdirectory names within destination
+  movies_folder: "Movies"
+  tv_folder: "TV Shows"
+  music_folder: "Music"
+  
+  # Folder for items that need manual review
+  review_needed: "review_needed"
+  
+  # Default source/destination (can be overridden with --src/--dst)
+  # Uncomment and set your paths:
+  # default_src: "/path/to/downloads"
+  # default_dst: "/path/to/media/library"
+
+# =============================================================================
+# API CONFIGURATION
+# =============================================================================
+# NOTE: It's recommended to use environment variables for API keys
+#       export TMDB_API_KEY="your_key_here"
+#
+api:
+  # tmdb_api_key: "your_tmdb_api_key"  # Use env var instead
+  cache_file: "metadata_cache.json"
+  tvmaze_enabled: true
+  imdb_fallback: true
+
+# =============================================================================
+# BEHAVIOR OPTIONS
+# =============================================================================
+behavior:
+  # Use beets for music organization
+  use_beets_for_music: true
+  
+  # Create .nfo files for Jellyfin/Kodi
+  create_nfo_files: true
+  
+  # Move subtitle files with videos
+  move_subtitles: true

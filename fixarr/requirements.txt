@@ -4,3 +4,5 @@ pyyaml
 requests
 pytest
 python-dotenv
+rapidfuzz
+pymediainfo

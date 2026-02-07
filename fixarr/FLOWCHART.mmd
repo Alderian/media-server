@@ -9,13 +9,22 @@ graph TD
     E -- Music --> F[Run Beets Import]
     F --> L[Update Report]
     
-    E -- TV Show --> G[Fetch TMDB/IMDb Metadata]
-    G --> H[Create Show/Season Folders]
+    E -- TV Show --> G[Clean Filename]
+    G --> G1[Fetch Metadata TMDb/TVmaze]
+    G1 --> G2[Score Candidates]
+    G2 --> G3{Confidence >= 0.7?}
+    G3 -- Yes --> H[Create Show/Season Folders]
+    G3 -- No --> R[Move to review_needed/]
     H --> I[Move Files & Create .nfo]
     I --> L
+    R --> L
     
-    E -- Movie --> J[Fetch TMDB Metadata]
-    J --> K[Create Movie Folder]
+    E -- Movie --> J[Clean Filename]
+    J --> J1[Fetch Metadata TMDb/IMDb]
+    J1 --> J2[Score Candidates]
+    J2 --> J3{Confidence >= 0.7?}
+    J3 -- Yes --> K[Create Movie Folder]
+    J3 -- No --> R
     K --> M[Move File & Create .nfo]
     M --> L
     
